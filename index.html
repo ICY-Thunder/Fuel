@@ -77,8 +77,8 @@
   /* API PROVIDER BADGE */
   .provider-badge {
     font-size: 9px; letter-spacing: 1px;
-    padding: 4px 8px; border: 1px solid #d97706;
-    color: #d97706; text-transform: uppercase;
+    padding: 4px 8px; border: 1px solid var(--accent);
+    color: var(--accent); text-transform: uppercase;
     cursor: pointer; transition: all 0.15s;
   }
 
@@ -167,8 +167,6 @@
   .setting-input:focus { border-color: var(--accent); }
   .setting-input.large { font-size: 24px; }
 
-
-
   .key-status { font-size: 9px; letter-spacing: 1px; color: var(--muted); margin-top: 6px; }
   .key-status.set { color: #4ade80; }
 
@@ -210,7 +208,7 @@
         <div class="logo">FUEL</div>
       </div>
       <div class="header-actions">
-        <div class="provider-badge" id="providerBadge" onclick="openApiPanel()">CLAUDE</div>
+        <div class="provider-badge" id="providerBadge" onclick="openApiPanel()">GEMINI</div>
         <button class="hdr-btn" onclick="openSettings()">⚙ Target</button>
       </div>
     </div>
@@ -258,7 +256,6 @@
     </div>
   </div>
 
-  <!-- SETTINGS SHEET -->
   <div class="sheet-overlay hidden" id="settingsPanel" onclick="handleOverlayClick(event,'settingsPanel')">
     <div class="sheet">
       <div class="sheet-title">Daily Target</div>
@@ -273,16 +270,15 @@
     </div>
   </div>
 
-  <!-- API SHEET -->
   <div class="sheet-overlay hidden" id="apiPanel" onclick="handleOverlayClick(event,'apiPanel')">
     <div class="sheet">
-      <div class="sheet-title">API Setup</div>
+      <div class="sheet-title">Gemini API Setup</div>
       <div class="sheet-sub">Keys are saved locally on your device only.<br>Never shared or uploaded anywhere.</div>
 
       <div class="setting-row">
-        <div class="setting-label">Claude API Key <span class="key-status" id="claudeStatus"></span></div>
-        <div class="sheet-sub" style="margin:-4px 0 8px;">Get a free key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a></div>
-        <input class="setting-input" type="password" id="claudeKeyInput" placeholder="sk-ant-...">
+        <div class="setting-label">Gemini API Key <span class="key-status" id="geminiStatus"></span></div>
+        <div class="sheet-sub" style="margin:-4px 0 8px;">Get a free API key at <a href="https://aistudio.google.com/" target="_blank" style="color:var(--accent)">aistudio.google.com</a></div>
+        <input class="setting-input" type="password" id="geminiKeyInput" placeholder="AIzaSy...">
       </div>
 
       <div class="sheet-actions">
@@ -300,7 +296,7 @@
 let meals = [];
 let calorieTarget = 2400;
 let isLoading = false;
-let claudeKey = '';
+let geminiKey = '';
 
 // ── LOAD / SAVE ────────────────────────────────────────
 function loadData() {
@@ -309,14 +305,15 @@ function loadData() {
     if (m) meals = JSON.parse(m);
     const t = localStorage.getItem('fuel_target');
     if (t) calorieTarget = parseInt(t);
-    claudeKey = localStorage.getItem('fuel_claude_key') || '';
+    // Backward compatibility & key loading
+    geminiKey = (localStorage.getItem('fuel_gemini_key') || localStorage.getItem('fuel_claude_key') || '').replace(/[^\x20-\x7E]/g, '').trim();
   } catch(e) { meals = []; }
 }
 
 function saveData() {
   localStorage.setItem('fuel_meals', JSON.stringify(meals));
   localStorage.setItem('fuel_target', calorieTarget);
-  if (claudeKey) localStorage.setItem('fuel_claude_key', claudeKey);
+  if (geminiKey) localStorage.setItem('fuel_gemini_key', geminiKey);
 }
 
 function clearAllData() {
@@ -324,7 +321,8 @@ function clearAllData() {
   localStorage.removeItem('fuel_meals');
   localStorage.removeItem('fuel_target');
   localStorage.removeItem('fuel_claude_key');
-  meals = []; calorieTarget = 2400; claudeKey = '';
+  localStorage.removeItem('fuel_gemini_key');
+  meals = []; calorieTarget = 2400; geminiKey = '';
   closePanel('apiPanel');
   render();
 }
@@ -357,38 +355,50 @@ function updateFavicon(pct, over) {
 }
 
 // ── API CALLS ──────────────────────────────────────────
-const PROMPT = (text) => `You are a nutrition expert. The user ate: "${text}"
-Estimate nutritional values. Be realistic with Pakistani/South Asian foods.
-Respond ONLY with a JSON object, no markdown, no explanation:
-{"calories": number, "protein": number, "carbs": number, "fats": number, "name": "short meal name"}`;
+const SYSTEM_INSTRUCTION = `You are a nutrition expert. The user ate a meal. Estimate its nutritional values. 
+Be highly realistic with Pakistani/South Asian foods (e.g., roti, paratha, daal, local commercial items, chicken karahi, etc.).
+You must respond strictly with a valid JSON object matching this schema, without markdown formatting blocks, preambles, or additional text:
+{"calories": number, "protein": number, "carbs": number, "fats": number, "name": "short descriptive meal name"}`;
 
-async function estimateWithClaude(mealText) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+async function estimateWithGemini(mealText) {
+  const cleanKey = geminiKey.replace(/[^ -~]/g, '').trim();
+  // Using the high-speed gemini-2.5-flash model endpoint
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${cleanKey}`;
+  
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': claudeKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      messages: [{ role: 'user', content: PROMPT(mealText) }]
+      contents: [{ parts: [{ text: `The user ate: "${mealText}"` }] }],
+      systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+        maxOutputTokens: 300
+      }
     })
   });
+
   const data = await res.json();
-  const text = data.content.map(b => b.text || '').join('');
-  const clean = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
+  if (!res.ok) throw new Error(data.error?.message || `API error ${res.status}`);
+  
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Empty response from Gemini engine');
+  
+  // Extract tracking JSON safely
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Invalid structural response data parsing layout.');
+  return JSON.parse(match[0]);
 }
 
 async function estimateMacros(mealText) {
-  return estimateWithClaude(mealText);
+  return estimateWithGemini(mealText);
 }
 
 function getActiveKey() {
-  return claudeKey;
+  return geminiKey;
 }
 
 // ── LOG MEAL ───────────────────────────────────────────
@@ -411,7 +421,7 @@ async function logMeal() {
   const loadingEl = document.createElement('div');
   loadingEl.id = loadingId;
   loadingEl.className = 'loading-card';
-  loadingEl.innerHTML = `<div class="loading-dots"><span></span><span></span><span></span></div><div class="loading-text">Estimating via claude — "${text.slice(0,28)}${text.length>28?'...':''}"</div>`;
+  loadingEl.innerHTML = `<div class="loading-dots"><span></span><span></span><span></span></div><div class="loading-text">Estimating via Gemini — "${text.slice(0,28)}${text.length>28?'...':''}"</div>`;
   content.appendChild(loadingEl);
   content.scrollTop = content.scrollHeight;
 
@@ -482,7 +492,7 @@ function render() {
   // Provider badge
   const badge = document.getElementById('providerBadge');
   const hasKey = !!getActiveKey();
-  badge.textContent = hasKey ? 'CLAUDE' : 'NO KEY';
+  badge.textContent = hasKey ? 'GEMINI' : 'NO KEY';
   badge.className = 'provider-badge';
 
   // Meal list
@@ -552,27 +562,16 @@ function saveSettings() {
 
 // ── API PANEL ──────────────────────────────────────────
 function openApiPanel() {
-  // populate fields (masked)
-
-  document.getElementById('claudeStatus').textContent = claudeKey ? '✓ set' : '';
-  document.getElementById('claudeStatus').className = 'key-status' + (claudeKey ? ' set' : '');
+  document.getElementById('geminiKeyInput').value = '';
+  document.getElementById('geminiKeyInput').placeholder = geminiKey ? 'AIzaSy...(' + geminiKey.slice(-4) + ') — leave blank to keep' : 'AIzaSy...';
+  document.getElementById('geminiStatus').textContent = geminiKey ? '✓ set' : '';
+  document.getElementById('geminiStatus').className = 'key-status' + (geminiKey ? ' set' : '');
   document.getElementById('apiPanel').classList.remove('hidden');
-
-  // Clear placeholder on focus so user can type new key
-  ['claudeKeyInput'].forEach(id => {
-    const el = document.getElementById(id);
-    el.addEventListener('focus', function onFocus() {
-      if (this.value.startsWith('••••')) this.value = '';
-      this.removeEventListener('focus', onFocus);
-    });
-  });
 }
 
-function setProvider(p) {}
-function updateProviderToggleUI() {}
-
 function saveApiSettings() {
-
+  const input = document.getElementById('geminiKeyInput').value.trim();
+  if (input) geminiKey = input; 
   saveData();
   closePanel('apiPanel');
   render();
