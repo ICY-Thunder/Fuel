@@ -7,6 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>FUEL</title>
+<link id="favicon" rel="icon" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,7 +17,6 @@
     --card: #181818;
     --border: #2a2a2a;
     --accent: #e8ff00;
-    --accent-dim: rgba(232,255,0,0.08);
     --text: #f0f0f0;
     --muted: #555;
     --protein: #ff6b35;
@@ -35,527 +35,209 @@
     user-select: none;
   }
 
-  .app {
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    position: relative;
-  }
+  .app { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 
   .app::before {
     content: '';
-    position: fixed;
-    inset: 0;
+    position: fixed; inset: 0;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 100;
-    opacity: 0.4;
+    pointer-events: none; z-index: 100; opacity: 0.4;
   }
 
   /* HEADER */
-  .header {
-    padding: 16px 20px 14px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
+  .header { padding: 16px 20px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 
-  .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-  }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+
+  .logo-wrap { display: flex; align-items: center; gap: 10px; }
 
   .logo {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 36px;
-    letter-spacing: 4px;
-    color: var(--accent);
-    line-height: 1;
+    font-size: 36px; letter-spacing: 4px;
+    color: var(--accent); line-height: 1;
     text-shadow: 0 0 30px rgba(232,255,0,0.3);
   }
 
-  .settings-btn {
+  .flame-svg { overflow: visible; flex-shrink: 0; }
+
+  .header-actions { display: flex; gap: 6px; align-items: center; }
+
+  .hdr-btn {
     background: none;
     border: 1px solid var(--border);
     color: var(--muted);
     font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 1px;
-    padding: 6px 12px;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.15s;
+    font-size: 10px; letter-spacing: 1px;
+    padding: 6px 10px; cursor: pointer;
+    text-transform: uppercase; transition: all 0.15s;
+    white-space: nowrap;
   }
+  .hdr-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-  .settings-btn:hover, .settings-btn.active {
-    border-color: var(--accent);
-    color: var(--accent);
+  /* API PROVIDER BADGE */
+  .provider-badge {
+    font-size: 9px; letter-spacing: 1px;
+    padding: 4px 8px; border: 1px solid var(--border);
+    color: var(--muted); text-transform: uppercase;
+    cursor: pointer; transition: all 0.15s;
   }
+  .provider-badge.gemini { border-color: #4285f4; color: #4285f4; }
+  .provider-badge.claude { border-color: #d97706; color: #d97706; }
 
-  /* CALORIE RING AREA */
-  .cal-summary {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
+  /* CALORIE RING */
+  .cal-summary { display: flex; align-items: center; gap: 16px; }
 
-  .ring-wrap {
-    position: relative;
-    width: 72px;
-    height: 72px;
-    flex-shrink: 0;
-  }
-
-  .ring-wrap svg {
-    transform: rotate(-90deg);
-  }
-
+  .ring-wrap { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+  .ring-wrap svg { transform: rotate(-90deg); }
   .ring-bg { fill: none; stroke: var(--border); stroke-width: 4; }
-  .ring-fill {
-    fill: none;
-    stroke: var(--accent);
-    stroke-width: 4;
-    stroke-linecap: butt;
-    transition: stroke-dashoffset 0.6s ease;
-    filter: drop-shadow(0 0 4px rgba(232,255,0,0.5));
-  }
-  .ring-fill.over { stroke: var(--danger); filter: drop-shadow(0 0 4px rgba(255,68,68,0.5)); }
-
-  .ring-center {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .ring-pct {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 20px;
-    line-height: 1;
-    color: var(--accent);
-  }
+  .ring-fill { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: butt; transition: stroke-dashoffset 0.6s ease; }
+  .ring-fill.over { stroke: var(--danger); }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring-pct { font-family: 'Bebas Neue', sans-serif; font-size: 20px; line-height: 1; color: var(--accent); }
   .ring-pct.over { color: var(--danger); }
-
-  .ring-label {
-    font-size: 7px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
+  .ring-label { font-size: 7px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
 
   .cal-info { flex: 1; }
-
-  .cal-numbers {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    margin-bottom: 4px;
-  }
-
-  .cal-consumed {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 38px;
-    line-height: 1;
-    color: var(--text);
-  }
-
-  .cal-slash {
-    font-size: 14px;
-    color: var(--muted);
-  }
-
-  .cal-target {
-    font-size: 14px;
-    color: var(--muted);
-    cursor: pointer;
-    border-bottom: 1px dashed var(--border);
-    transition: color 0.15s;
-  }
+  .cal-numbers { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+  .cal-consumed { font-family: 'Bebas Neue', sans-serif; font-size: 38px; line-height: 1; color: var(--text); }
+  .cal-slash { font-size: 14px; color: var(--muted); }
+  .cal-target { font-size: 14px; color: var(--muted); cursor: pointer; border-bottom: 1px dashed var(--border); transition: color 0.15s; }
   .cal-target:hover { color: var(--accent); }
-
-  .cal-remaining {
-    font-size: 10px;
-    letter-spacing: 1px;
-    color: var(--muted);
-    text-transform: uppercase;
-  }
+  .cal-remaining { font-size: 10px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
   .cal-remaining.over { color: var(--danger); }
 
-  /* MACRO ROW */
-  .macro-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
-  }
-
-  .macro-chip {
-    flex: 1;
-    background: var(--card);
-    border: 1px solid var(--border);
-    padding: 8px 10px;
-    text-align: center;
-  }
-
-  .macro-val {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 20px;
-    line-height: 1;
-  }
-
+  /* MACROS */
+  .macro-row { display: flex; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .macro-chip { flex: 1; background: var(--card); border: 1px solid var(--border); padding: 8px 10px; text-align: center; }
+  .macro-val { font-family: 'Bebas Neue', sans-serif; font-size: 20px; line-height: 1; }
   .macro-val.p { color: var(--protein); }
   .macro-val.c { color: var(--carbs); }
   .macro-val.f { color: var(--fats); }
+  .macro-unit { font-size: 8px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
 
-  .macro-unit {
-    font-size: 8px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-top: 2px;
-  }
-
-  /* SCROLLABLE CONTENT */
-  .content {
-    flex: 1;
-    overflow-y: auto;
-    scrollbar-width: none;
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
+  /* CONTENT */
+  .content { flex: 1; overflow-y: auto; scrollbar-width: none; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
   .content::-webkit-scrollbar { display: none; }
 
-  /* DATE GROUP */
   .date-group { margin-bottom: 4px; }
+  .date-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .date-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-  .date-label {
-    font-size: 9px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .date-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  /* MEAL CARD */
-  .meal-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    padding: 12px 14px;
-    position: relative;
-    animation: slideIn 0.2s ease;
-  }
-
-  .meal-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  .meal-name {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text);
-    line-height: 1.4;
-    flex: 1;
-  }
-
-  .meal-kcal {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    color: var(--accent);
-    line-height: 1;
-    flex-shrink: 0;
-  }
-
-  .meal-macros {
-    display: flex;
-    gap: 12px;
-  }
-
-  .meal-macro {
-    font-size: 10px;
-    letter-spacing: 0.5px;
-  }
-
-  .meal-macro span { color: var(--muted); }
+  .meal-card { background: var(--card); border: 1px solid var(--border); padding: 12px 14px; position: relative; animation: slideIn 0.2s ease; }
+  .meal-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .meal-name { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.4; flex: 1; }
+  .meal-kcal { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); line-height: 1; flex-shrink: 0; }
+  .meal-macros { display: flex; gap: 12px; }
+  .meal-macro { font-size: 10px; letter-spacing: 0.5px; }
   .meal-macro.p { color: var(--protein); }
   .meal-macro.c { color: var(--carbs); }
   .meal-macro.f { color: var(--fats); }
+  .meal-time { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 6px; }
 
-  .meal-time {
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    margin-top: 6px;
-  }
-
-  .delete-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: none;
-    border: none;
-    color: var(--border);
-    cursor: pointer;
-    font-size: 14px;
-    padding: 2px 6px;
-    transition: color 0.15s;
-    display: none;
-  }
-
-  .meal-card:hover .delete-btn,
-  .meal-card:active .delete-btn { display: block; }
+  .delete-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; color: var(--border); cursor: pointer; font-size: 14px; padding: 2px 6px; transition: color 0.15s; display: none; }
+  .meal-card:hover .delete-btn, .meal-card:active .delete-btn { display: block; }
   .delete-btn:hover { color: var(--danger); }
 
-  /* LOADING CARD */
-  .loading-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    padding: 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    animation: slideIn 0.2s ease;
-  }
-
-  .loading-dots {
-    display: flex;
-    gap: 4px;
-  }
-
-  .loading-dots span {
-    width: 5px;
-    height: 5px;
-    background: var(--accent);
-    border-radius: 50%;
-    animation: bounce 1s infinite;
-  }
-
+  .loading-card { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 14px; display: flex; align-items: center; gap: 10px; animation: slideIn 0.2s ease; }
+  .loading-dots { display: flex; gap: 4px; }
+  .loading-dots span { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; animation: bounce 1s infinite; }
   .loading-dots span:nth-child(2) { animation-delay: 0.15s; }
   .loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+  .loading-text { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; flex: 1; }
 
-  .loading-text {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    flex: 1;
-  }
-
-  /* INPUT AREA */
-  .input-area {
-    padding: 12px 20px 20px;
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
-    background: var(--bg);
-  }
-
-  .input-wrap {
-    display: flex;
-    gap: 8px;
-    align-items: flex-end;
-  }
-
-  .meal-input {
-    flex: 1;
-    background: var(--card);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    padding: 12px 14px;
-    resize: none;
-    outline: none;
-    transition: border-color 0.15s;
-    line-height: 1.5;
-    max-height: 80px;
-    overflow-y: auto;
-    scrollbar-width: none;
-  }
-
+  /* INPUT */
+  .input-area { padding: 12px 20px 20px; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--bg); }
+  .input-wrap { display: flex; gap: 8px; align-items: flex-end; }
+  .meal-input { flex: 1; background: var(--card); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; padding: 12px 14px; resize: none; outline: none; transition: border-color 0.15s; line-height: 1.5; max-height: 80px; overflow-y: auto; scrollbar-width: none; }
   .meal-input::-webkit-scrollbar { display: none; }
   .meal-input::placeholder { color: var(--muted); }
   .meal-input:focus { border-color: var(--accent); }
-
-  .log-btn {
-    background: var(--accent);
-    border: none;
-    color: #000;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
-    letter-spacing: 2px;
-    padding: 12px 16px;
-    cursor: pointer;
-    transition: opacity 0.15s;
-    flex-shrink: 0;
-    height: 46px;
-    display: flex;
-    align-items: center;
-  }
-
+  .log-btn { background: var(--accent); border: none; color: #000; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; padding: 12px 16px; cursor: pointer; transition: opacity 0.15s; flex-shrink: 0; height: 46px; display: flex; align-items: center; }
   .log-btn:disabled { opacity: 0.3; cursor: not-allowed; }
   .log-btn:not(:disabled):hover { opacity: 0.85; }
 
-  /* SETTINGS PANEL */
-  .settings-panel {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.9);
-    z-index: 200;
-    display: flex;
-    align-items: flex-end;
-    animation: fadeIn 0.2s ease;
-  }
+  /* SHEET (shared by settings + API panel) */
+  .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; display: flex; align-items: flex-end; animation: fadeIn 0.2s ease; }
+  .sheet-overlay.hidden { display: none; }
+  .sheet { background: #111; border-top: 1px solid var(--border); width: 100%; padding: 24px 20px 40px; animation: slideUp 0.25s ease; }
+  .sheet-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px; color: var(--accent); margin-bottom: 6px; }
+  .sheet-sub { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 20px; line-height: 1.6; }
 
-  .settings-panel.hidden { display: none; }
-
-  .settings-sheet {
-    background: #111;
-    border-top: 1px solid var(--border);
-    width: 100%;
-    padding: 24px 20px 40px;
-    animation: slideUp 0.25s ease;
-  }
-
-  .settings-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    letter-spacing: 3px;
-    color: var(--accent);
-    margin-bottom: 20px;
-  }
-
-  .setting-row {
-    margin-bottom: 16px;
-  }
-
-  .setting-label {
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-
-  .setting-input {
-    width: 100%;
-    background: var(--card);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 24px;
-    padding: 10px 14px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-
+  .setting-row { margin-bottom: 16px; }
+  .setting-label { font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .setting-input { width: 100%; background: var(--card); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 16px; padding: 10px 14px; outline: none; transition: border-color 0.15s; }
   .setting-input:focus { border-color: var(--accent); }
+  .setting-input.large { font-size: 24px; }
 
-  .settings-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 20px;
+  /* PROVIDER TOGGLE */
+  .provider-toggle { display: flex; gap: 0; margin-bottom: 20px; }
+  .toggle-opt {
+    flex: 1; padding: 10px; text-align: center;
+    font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 2px;
+    text-transform: uppercase; cursor: pointer; border: 1px solid var(--border);
+    color: var(--muted); transition: all 0.15s; background: none;
   }
+  .toggle-opt:first-child { border-right: none; }
+  .toggle-opt.active-gemini { background: rgba(66,133,244,0.1); border-color: #4285f4; color: #4285f4; }
+  .toggle-opt.active-claude { background: rgba(217,119,6,0.1); border-color: #d97706; color: #d97706; }
 
-  .btn-save {
-    flex: 1;
-    background: var(--accent);
-    border: none;
-    color: #000;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
-    letter-spacing: 2px;
-    padding: 12px;
-    cursor: pointer;
-  }
+  .key-status { font-size: 9px; letter-spacing: 1px; color: var(--muted); margin-top: 6px; }
+  .key-status.set { color: #4ade80; }
 
-  .btn-cancel {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 1px;
-    padding: 12px 20px;
-    cursor: pointer;
-    text-transform: uppercase;
-  }
+  .sheet-actions { display: flex; gap: 8px; margin-top: 20px; }
+  .btn-save { flex: 1; background: var(--accent); border: none; color: #000; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; padding: 12px; cursor: pointer; }
+  .btn-cancel { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 1px; padding: 12px 20px; cursor: pointer; text-transform: uppercase; }
+  .btn-danger { background: none; border: 1px solid var(--danger); color: var(--danger); font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1px; padding: 10px 14px; cursor: pointer; text-transform: uppercase; margin-top: 12px; width: 100%; }
 
-  /* EMPTY STATE */
-  .empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--muted);
-  }
-
+  /* EMPTY / SETUP STATE */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
   .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
   .empty-text { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; line-height: 1.8; }
+  .setup-btn { margin-top: 16px; padding: 10px 20px; background: var(--accent); border: none; color: #000; font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px; cursor: pointer; }
 
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes bounce {
-    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-    40% { transform: scale(1); opacity: 1; }
-  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes bounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
 </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- HEADER -->
   <div class="header">
     <div class="header-top">
-      <div class="logo">FUEL</div>
-      <button class="settings-btn" onclick="openSettings()">⚙ Target</button>
+      <div class="logo-wrap">
+        <svg class="flame-svg" width="26" height="36" viewBox="0 0 26 36">
+          <defs>
+            <clipPath id="flameFillClip">
+              <rect id="flameClipRect" x="0" y="36" width="26" height="0"/>
+            </clipPath>
+          </defs>
+          <g clip-path="url(#flameFillClip)">
+            <path id="flameFilled" d="M13 1 C13 1 20 8 20 14 C20 14 22 11 21 8 C24 12 26 17 24 22 C22 28 18 33 13 35 C8 33 4 28 2 22 C0 17 2 12 5 8 C4 11 6 14 6 14 C6 8 13 1 13 1 Z" fill="#e8ff00"/>
+            <path id="flameInner" d="M13 12 C13 12 17 17 17 21 C17 24 15 27 13 28 C11 27 9 24 9 21 C9 17 13 12 13 12 Z" fill="#c8dd00" opacity="0.6"/>
+          </g>
+          <path id="flameOutline" d="M13 1 C13 1 20 8 20 14 C20 14 22 11 21 8 C24 12 26 17 24 22 C22 28 18 33 13 35 C8 33 4 28 2 22 C0 17 2 12 5 8 C4 11 6 14 6 14 C6 8 13 1 13 1 Z" fill="none" stroke="#444" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+        <div class="logo">FUEL</div>
+      </div>
+      <div class="header-actions">
+        <div class="provider-badge" id="providerBadge" onclick="openApiPanel()">—</div>
+        <button class="hdr-btn" onclick="openSettings()">⚙ Target</button>
+      </div>
     </div>
 
     <div class="cal-summary">
       <div class="ring-wrap">
         <svg width="72" height="72" viewBox="0 0 72 72">
           <circle class="ring-bg" cx="36" cy="36" r="30"/>
-          <circle class="ring-fill" id="ringFill" cx="36" cy="36" r="30"
-            stroke-dasharray="188.5"
-            stroke-dashoffset="188.5"/>
+          <circle class="ring-fill" id="ringFill" cx="36" cy="36" r="30" stroke-dasharray="188.5" stroke-dashoffset="188.5"/>
         </svg>
         <div class="ring-center">
           <div class="ring-pct" id="ringPct">0%</div>
           <div class="ring-label">used</div>
         </div>
       </div>
-
       <div class="cal-info">
         <div class="cal-numbers">
           <div class="cal-consumed" id="calConsumed">0</div>
@@ -567,56 +249,69 @@
     </div>
 
     <div class="macro-row">
-      <div class="macro-chip">
-        <div class="macro-val p" id="totalProtein">0</div>
-        <div class="macro-unit">Protein g</div>
-      </div>
-      <div class="macro-chip">
-        <div class="macro-val c" id="totalCarbs">0</div>
-        <div class="macro-unit">Carbs g</div>
-      </div>
-      <div class="macro-chip">
-        <div class="macro-val f" id="totalFats">0</div>
-        <div class="macro-unit">Fats g</div>
-      </div>
+      <div class="macro-chip"><div class="macro-val p" id="totalProtein">0</div><div class="macro-unit">Protein g</div></div>
+      <div class="macro-chip"><div class="macro-val c" id="totalCarbs">0</div><div class="macro-unit">Carbs g</div></div>
+      <div class="macro-chip"><div class="macro-val f" id="totalFats">0</div><div class="macro-unit">Fats g</div></div>
     </div>
   </div>
 
-  <!-- MEAL LOG -->
   <div class="content" id="content">
     <div class="empty-state" id="emptyState">
       <div class="empty-icon">🍽</div>
-      <div class="empty-text">No meals logged yet.<br>Type what you ate below.</div>
+      <div class="empty-text" id="emptyText">No meals logged yet.<br>Type what you ate below.</div>
+      <button class="setup-btn" id="setupBtn" onclick="openApiPanel()" style="display:none">Set Up API Key</button>
     </div>
   </div>
 
-  <!-- INPUT -->
   <div class="input-area">
     <div class="input-wrap">
-      <textarea
-        class="meal-input"
-        id="mealInput"
-        placeholder="e.g. 2 eggs, 1 roti, glass of milk..."
-        rows="1"
-        onkeydown="handleKey(event)"
-        oninput="autoResize(this)"
-      ></textarea>
+      <textarea class="meal-input" id="mealInput" placeholder="e.g. 2 eggs, 1 roti, glass of milk..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button class="log-btn" id="logBtn" onclick="logMeal()">LOG</button>
     </div>
   </div>
 
-  <!-- SETTINGS PANEL -->
-  <div class="settings-panel hidden" id="settingsPanel" onclick="handlePanelClick(event)">
-    <div class="settings-sheet">
-      <div class="settings-title">Daily Target</div>
+  <!-- SETTINGS SHEET -->
+  <div class="sheet-overlay hidden" id="settingsPanel" onclick="handleOverlayClick(event,'settingsPanel')">
+    <div class="sheet">
+      <div class="sheet-title">Daily Target</div>
       <div class="setting-row">
         <div class="setting-label">Calorie Target (kcal)</div>
-        <input class="setting-input" type="number" id="targetInput" value="2400">
+        <input class="setting-input large" type="number" id="targetInput" value="2400">
       </div>
-      <div class="settings-actions">
+      <div class="sheet-actions">
         <button class="btn-save" onclick="saveSettings()">SAVE</button>
-        <button class="btn-cancel" onclick="closeSettings()">Cancel</button>
+        <button class="btn-cancel" onclick="closePanel('settingsPanel')">Cancel</button>
       </div>
+    </div>
+  </div>
+
+  <!-- API SHEET -->
+  <div class="sheet-overlay hidden" id="apiPanel" onclick="handleOverlayClick(event,'apiPanel')">
+    <div class="sheet">
+      <div class="sheet-title">API Setup</div>
+      <div class="sheet-sub">Keys are saved locally on your device only.<br>Never shared or uploaded anywhere.</div>
+
+      <div class="setting-label">Active Provider</div>
+      <div class="provider-toggle">
+        <button class="toggle-opt" id="toggleGemini" onclick="setProvider('gemini')">Gemini</button>
+        <button class="toggle-opt" id="toggleClaude" onclick="setProvider('claude')">Claude</button>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">Gemini API Key <span class="key-status" id="geminiStatus"></span></div>
+        <input class="setting-input" type="password" id="geminiKeyInput" placeholder="AIza...">
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">Claude API Key <span class="key-status" id="claudeStatus"></span></div>
+        <input class="setting-input" type="password" id="claudeKeyInput" placeholder="sk-ant-...">
+      </div>
+
+      <div class="sheet-actions">
+        <button class="btn-save" onclick="saveApiSettings()">SAVE</button>
+        <button class="btn-cancel" onclick="closePanel('apiPanel')">Cancel</button>
+      </div>
+      <button class="btn-danger" onclick="clearAllData()">Clear All Data & Keys</button>
     </div>
   </div>
 
@@ -627,47 +322,118 @@
 let meals = [];
 let calorieTarget = 2400;
 let isLoading = false;
+let activeProvider = 'gemini'; // 'gemini' or 'claude'
+let geminiKey = '';
+let claudeKey = '';
 
+// ── LOAD / SAVE ────────────────────────────────────────
 function loadData() {
   try {
     const m = localStorage.getItem('fuel_meals');
     if (m) meals = JSON.parse(m);
     const t = localStorage.getItem('fuel_target');
     if (t) calorieTarget = parseInt(t);
+    activeProvider = localStorage.getItem('fuel_provider') || 'gemini';
+    geminiKey = localStorage.getItem('fuel_gemini_key') || '';
+    claudeKey = localStorage.getItem('fuel_claude_key') || '';
   } catch(e) { meals = []; }
 }
 
 function saveData() {
   localStorage.setItem('fuel_meals', JSON.stringify(meals));
   localStorage.setItem('fuel_target', calorieTarget);
+  localStorage.setItem('fuel_provider', activeProvider);
+  if (geminiKey) localStorage.setItem('fuel_gemini_key', geminiKey);
+  if (claudeKey) localStorage.setItem('fuel_claude_key', claudeKey);
 }
 
-// ── CLAUDE API ─────────────────────────────────────────
-async function estimateMacros(mealText) {
-  const prompt = `You are a nutrition expert. The user ate: "${mealText}"
-  
-Estimate the nutritional values. Be realistic with Pakistani/South Asian foods if relevant.
-Respond ONLY with a JSON object, no markdown, no explanation:
-{"calories": number, "protein": number, "carbs": number, "fats": number, "name": "clean short meal name"}`;
+function clearAllData() {
+  if (!confirm('Clear all meals, keys, and settings?')) return;
+  localStorage.removeItem('fuel_meals');
+  localStorage.removeItem('fuel_target');
+  localStorage.removeItem('fuel_provider');
+  localStorage.removeItem('fuel_gemini_key');
+  localStorage.removeItem('fuel_claude_key');
+  meals = []; calorieTarget = 2400; geminiKey = ''; claudeKey = ''; activeProvider = 'gemini';
+  closePanel('apiPanel');
+  render();
+}
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+// ── FLAME ──────────────────────────────────────────────
+function updateFlame(pct, over) {
+  const h = 36;
+  const fillH = Math.min(pct, 1) * h;
+  const fillY = h - fillH;
+  const cr = document.getElementById('flameClipRect');
+  if (cr) { cr.setAttribute('y', fillY); cr.setAttribute('height', fillH); }
+  const color = over ? '#ff4444' : '#e8ff00';
+  const inner = over ? '#cc2222' : '#c8dd00';
+  const outline = fillH > 0 ? color : '#444';
+  const f = document.getElementById('flameFilled');
+  const fi = document.getElementById('flameInner');
+  const fo = document.getElementById('flameOutline');
+  if (f) f.setAttribute('fill', color);
+  if (fi) fi.setAttribute('fill', inner);
+  if (fo) fo.setAttribute('stroke', outline);
+  updateFavicon(Math.min(pct, 1), over);
+}
+
+function updateFavicon(pct, over) {
+  const h = 32, fillH = Math.round(pct * h), fillY = h - fillH;
+  const color = over ? '#ff4444' : '#e8ff00';
+  const sc = pct > 0 ? color : '#555';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" fill="#0a0a0a"/><defs><clipPath id="fc"><rect x="0" y="${fillY}" width="32" height="${fillH}"/></clipPath></defs><g clip-path="url(#fc)"><path d="M16 2 C16 2 24 9 24 15 C24 15 26 12 25 9 C28 13 30 18 28 23 C26 28 21 31 16 31 C11 31 6 28 4 23 C2 18 4 13 7 9 C6 12 8 15 8 15 C8 9 16 2 16 2 Z" fill="${color}"/></g><path d="M16 2 C16 2 24 9 24 15 C24 15 26 12 25 9 C28 13 30 18 28 23 C26 28 21 31 16 31 C11 31 6 28 4 23 C2 18 4 13 7 9 C6 12 8 15 8 15 C8 9 16 2 16 2 Z" fill="none" stroke="${sc}" stroke-width="1.2"/></svg>`;
+  document.getElementById('favicon').href = 'data:image/svg+xml;base64,' + btoa(svg);
+}
+
+// ── API CALLS ──────────────────────────────────────────
+const PROMPT = (text) => `You are a nutrition expert. The user ate: "${text}"
+Estimate nutritional values. Be realistic with Pakistani/South Asian foods.
+Respond ONLY with a JSON object, no markdown, no explanation:
+{"calories": number, "protein": number, "carbs": number, "fats": number, "name": "short meal name"}`;
+
+async function estimateWithGemini(mealText) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: PROMPT(mealText) }] }] })
+  });
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
+async function estimateWithClaude(mealText) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
-      messages: [{ role: "user", content: prompt }]
+      messages: [{ role: 'user', content: PROMPT(mealText) }]
     })
   });
-
-  const data = await response.json();
+  const data = await res.json();
   const text = data.content.map(b => b.text || '').join('');
   const clean = text.replace(/```json|```/g, '').trim();
   return JSON.parse(clean);
 }
 
+async function estimateMacros(mealText) {
+  if (activeProvider === 'gemini') return estimateWithGemini(mealText);
+  return estimateWithClaude(mealText);
+}
+
+function getActiveKey() {
+  return activeProvider === 'gemini' ? geminiKey : claudeKey;
+}
+
 // ── LOG MEAL ───────────────────────────────────────────
 async function logMeal() {
+  if (!getActiveKey()) { openApiPanel(); return; }
+
   const input = document.getElementById('mealInput');
   const text = input.value.trim();
   if (!text || isLoading) return;
@@ -677,7 +443,6 @@ async function logMeal() {
   autoResize(input);
   document.getElementById('logBtn').disabled = true;
 
-  // Show loading card
   const loadingId = 'loading-' + Date.now();
   const content = document.getElementById('content');
   document.getElementById('emptyState').style.display = 'none';
@@ -685,121 +450,97 @@ async function logMeal() {
   const loadingEl = document.createElement('div');
   loadingEl.id = loadingId;
   loadingEl.className = 'loading-card';
-  loadingEl.innerHTML = `
-    <div class="loading-dots">
-      <span></span><span></span><span></span>
-    </div>
-    <div class="loading-text">Estimating — "${text.slice(0, 30)}${text.length > 30 ? '...' : ''}"</div>
-  `;
+  loadingEl.innerHTML = `<div class="loading-dots"><span></span><span></span><span></span></div><div class="loading-text">Estimating via ${activeProvider} — "${text.slice(0,28)}${text.length>28?'...':''}"</div>`;
   content.appendChild(loadingEl);
   content.scrollTop = content.scrollHeight;
 
   try {
     const result = await estimateMacros(text);
-    const meal = {
-      id: Date.now(),
-      name: result.name || text,
-      calories: Math.round(result.calories),
-      protein: Math.round(result.protein),
-      carbs: Math.round(result.carbs),
-      fats: Math.round(result.fats),
-      time: new Date().toISOString(),
-      raw: text
-    };
-
-    meals.push(meal);
+    meals.push({
+      id: Date.now(), name: result.name || text,
+      calories: Math.round(result.calories), protein: Math.round(result.protein),
+      carbs: Math.round(result.carbs), fats: Math.round(result.fats),
+      time: new Date().toISOString(), raw: text
+    });
     saveData();
   } catch(e) {
-    // On error, show a simple fallback
-    const meal = {
-      id: Date.now(),
-      name: text,
-      calories: 0, protein: 0, carbs: 0, fats: 0,
-      time: new Date().toISOString(),
-      raw: text,
-      error: true
-    };
-    meals.push(meal);
+    meals.push({ id: Date.now(), name: text, calories: 0, protein: 0, carbs: 0, fats: 0, time: new Date().toISOString(), raw: text, error: true });
     saveData();
   }
 
-  // Remove loading card
   const el = document.getElementById(loadingId);
   if (el) el.remove();
-
   isLoading = false;
   document.getElementById('logBtn').disabled = false;
   render();
   content.scrollTop = content.scrollHeight;
 }
 
-function deleteMeal(id) {
-  meals = meals.filter(m => m.id !== id);
-  saveData();
-  render();
-}
+function deleteMeal(id) { meals = meals.filter(m => m.id !== id); saveData(); render(); }
 
 // ── RENDER ─────────────────────────────────────────────
 function render() {
-  // Totals
-  const totals = meals.reduce((acc, m) => ({
-    calories: acc.calories + (m.calories || 0),
+  const todayStr = new Date().toDateString();
+  const todayMeals = meals.filter(m => new Date(m.time).toDateString() === todayStr);
+  const todayCals = todayMeals.reduce((a, m) => a + (m.calories || 0), 0);
+
+  const allTotals = meals.reduce((acc, m) => ({
     protein: acc.protein + (m.protein || 0),
     carbs: acc.carbs + (m.carbs || 0),
     fats: acc.fats + (m.fats || 0),
-  }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+  }), { protein: 0, carbs: 0, fats: 0 });
 
-  const pct = Math.min(totals.calories / calorieTarget, 1);
-  const over = totals.calories > calorieTarget;
-  const remaining = calorieTarget - totals.calories;
+  const pct = todayCals / calorieTarget;
+  const over = todayCals > calorieTarget;
+
+  updateFlame(pct, over);
 
   // Ring
   const circ = 188.5;
   const ring = document.getElementById('ringFill');
-  ring.style.strokeDashoffset = circ - (pct * circ);
+  ring.style.strokeDashoffset = circ - (Math.min(pct, 1) * circ);
   ring.className = 'ring-fill' + (over ? ' over' : '');
-
   const ringPct = document.getElementById('ringPct');
   ringPct.textContent = Math.round(pct * 100) + '%';
   ringPct.className = 'ring-pct' + (over ? ' over' : '');
 
-  document.getElementById('calConsumed').textContent = totals.calories.toLocaleString();
+  document.getElementById('calConsumed').textContent = todayCals.toLocaleString();
   document.getElementById('calTarget').textContent = calorieTarget.toLocaleString();
 
+  const remaining = calorieTarget - todayCals;
   const remEl = document.getElementById('calRemaining');
-  if (over) {
-    remEl.textContent = `${Math.abs(remaining).toLocaleString()} kcal over target`;
-    remEl.className = 'cal-remaining over';
-  } else {
-    remEl.textContent = `${remaining.toLocaleString()} kcal remaining`;
-    remEl.className = 'cal-remaining';
-  }
+  remEl.textContent = over ? `${Math.abs(remaining).toLocaleString()} kcal over target` : `${remaining.toLocaleString()} kcal remaining`;
+  remEl.className = 'cal-remaining' + (over ? ' over' : '');
 
-  document.getElementById('totalProtein').textContent = totals.protein;
-  document.getElementById('totalCarbs').textContent = totals.carbs;
-  document.getElementById('totalFats').textContent = totals.fats;
+  document.getElementById('totalProtein').textContent = allTotals.protein;
+  document.getElementById('totalCarbs').textContent = allTotals.carbs;
+  document.getElementById('totalFats').textContent = allTotals.fats;
 
-  // Meal list grouped by date
+  // Provider badge
+  const badge = document.getElementById('providerBadge');
+  const hasKey = !!getActiveKey();
+  badge.textContent = hasKey ? activeProvider.toUpperCase() : 'NO KEY';
+  badge.className = 'provider-badge ' + (hasKey ? activeProvider : '');
+
+  // Meal list
   const content = document.getElementById('content');
   const emptyState = document.getElementById('emptyState');
-
-  // Clear existing meal cards but preserve empty state
   Array.from(content.querySelectorAll('.date-group, .meal-card, .loading-card')).forEach(el => el.remove());
 
   if (meals.length === 0) {
     emptyState.style.display = 'block';
+    const noKey = !getActiveKey();
+    document.getElementById('emptyText').innerHTML = noKey
+      ? 'API key not set.<br>Tap below to get started.'
+      : 'No meals logged yet.<br>Type what you ate below.';
+    document.getElementById('setupBtn').style.display = noKey ? 'inline-block' : 'none';
     return;
   }
 
   emptyState.style.display = 'none';
 
-  // Group by date
   const groups = {};
-  meals.forEach(m => {
-    const d = new Date(m.time).toDateString();
-    if (!groups[d]) groups[d] = [];
-    groups[d].push(m);
-  });
+  meals.forEach(m => { const d = new Date(m.time).toDateString(); if (!groups[d]) groups[d] = []; groups[d].push(m); });
 
   const today = new Date().toDateString();
   const yesterday = new Date(Date.now() - 86400000).toDateString();
@@ -807,21 +548,14 @@ function render() {
   Object.entries(groups).forEach(([date, dayMeals]) => {
     const group = document.createElement('div');
     group.className = 'date-group';
-
-    let label = date;
-    if (date === today) label = 'Today';
-    else if (date === yesterday) label = 'Yesterday';
-    else label = new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
+    let label = date === today ? 'Today' : date === yesterday ? 'Yesterday' : new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     group.innerHTML = `<div class="date-label">${label.toUpperCase()}</div>`;
 
     dayMeals.forEach(meal => {
       const card = document.createElement('div');
       card.className = 'meal-card';
       card.style.marginBottom = '8px';
-
       const time = new Date(meal.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
       card.innerHTML = `
         <button class="delete-btn" onclick="deleteMeal(${meal.id})">✕</button>
         <div class="meal-top">
@@ -835,10 +569,8 @@ function render() {
         </div>
         <div class="meal-time">${time}</div>
       `;
-
       group.appendChild(card);
     });
-
     content.appendChild(group);
   });
 }
@@ -849,36 +581,63 @@ function openSettings() {
   document.getElementById('settingsPanel').classList.remove('hidden');
 }
 
-function closeSettings() {
-  document.getElementById('settingsPanel').classList.add('hidden');
-}
-
 function saveSettings() {
   const val = parseInt(document.getElementById('targetInput').value);
-  if (val > 0) {
-    calorieTarget = val;
-    saveData();
-    render();
-  }
-  closeSettings();
+  if (val > 0) { calorieTarget = val; saveData(); render(); }
+  closePanel('settingsPanel');
 }
 
-function handlePanelClick(e) {
-  if (e.target === document.getElementById('settingsPanel')) closeSettings();
+// ── API PANEL ──────────────────────────────────────────
+function openApiPanel() {
+  // populate fields (masked)
+  document.getElementById('geminiKeyInput').value = geminiKey ? '••••••••' + geminiKey.slice(-4) : '';
+  document.getElementById('claudeKeyInput').value = claudeKey ? '••••••••' + claudeKey.slice(-4) : '';
+  document.getElementById('geminiStatus').textContent = geminiKey ? '✓ set' : '';
+  document.getElementById('geminiStatus').className = 'key-status' + (geminiKey ? ' set' : '');
+  document.getElementById('claudeStatus').textContent = claudeKey ? '✓ set' : '';
+  document.getElementById('claudeStatus').className = 'key-status' + (claudeKey ? ' set' : '');
+  updateProviderToggleUI();
+  document.getElementById('apiPanel').classList.remove('hidden');
+
+  // Clear placeholder on focus so user can type new key
+  ['geminiKeyInput','claudeKeyInput'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('focus', function onFocus() {
+      if (this.value.startsWith('••••')) this.value = '';
+      this.removeEventListener('focus', onFocus);
+    });
+  });
 }
+
+function setProvider(p) {
+  activeProvider = p;
+  updateProviderToggleUI();
+}
+
+function updateProviderToggleUI() {
+  const tg = document.getElementById('toggleGemini');
+  const tc = document.getElementById('toggleClaude');
+  tg.className = 'toggle-opt' + (activeProvider === 'gemini' ? ' active-gemini' : '');
+  tc.className = 'toggle-opt' + (activeProvider === 'claude' ? ' active-claude' : '');
+}
+
+function saveApiSettings() {
+  const gInput = document.getElementById('geminiKeyInput').value.trim();
+  const cInput = document.getElementById('claudeKeyInput').value.trim();
+  // Only update if user typed something new (not the masked placeholder)
+  if (gInput && !gInput.startsWith('••••')) geminiKey = gInput;
+  if (cInput && !cInput.startsWith('••••')) claudeKey = cInput;
+  saveData();
+  closePanel('apiPanel');
+  render();
+}
+
+function closePanel(id) { document.getElementById(id).classList.add('hidden'); }
+function handleOverlayClick(e, id) { if (e.target === document.getElementById(id)) closePanel(id); }
 
 // ── INPUT HELPERS ──────────────────────────────────────
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    logMeal();
-  }
-}
-
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 80) + 'px';
-}
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); logMeal(); } }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 80) + 'px'; }
 
 // ── INIT ───────────────────────────────────────────────
 loadData();
