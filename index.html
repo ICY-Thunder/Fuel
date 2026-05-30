@@ -77,12 +77,10 @@
   /* API PROVIDER BADGE */
   .provider-badge {
     font-size: 9px; letter-spacing: 1px;
-    padding: 4px 8px; border: 1px solid var(--border);
-    color: var(--muted); text-transform: uppercase;
+    padding: 4px 8px; border: 1px solid #d97706;
+    color: #d97706; text-transform: uppercase;
     cursor: pointer; transition: all 0.15s;
   }
-  .provider-badge.gemini { border-color: #4285f4; color: #4285f4; }
-  .provider-badge.claude { border-color: #d97706; color: #d97706; }
 
   /* CALORIE RING */
   .cal-summary { display: flex; align-items: center; gap: 16px; }
@@ -169,17 +167,7 @@
   .setting-input:focus { border-color: var(--accent); }
   .setting-input.large { font-size: 24px; }
 
-  /* PROVIDER TOGGLE */
-  .provider-toggle { display: flex; gap: 0; margin-bottom: 20px; }
-  .toggle-opt {
-    flex: 1; padding: 10px; text-align: center;
-    font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 2px;
-    text-transform: uppercase; cursor: pointer; border: 1px solid var(--border);
-    color: var(--muted); transition: all 0.15s; background: none;
-  }
-  .toggle-opt:first-child { border-right: none; }
-  .toggle-opt.active-gemini { background: rgba(66,133,244,0.1); border-color: #4285f4; color: #4285f4; }
-  .toggle-opt.active-claude { background: rgba(217,119,6,0.1); border-color: #d97706; color: #d97706; }
+
 
   .key-status { font-size: 9px; letter-spacing: 1px; color: var(--muted); margin-top: 6px; }
   .key-status.set { color: #4ade80; }
@@ -222,7 +210,7 @@
         <div class="logo">FUEL</div>
       </div>
       <div class="header-actions">
-        <div class="provider-badge" id="providerBadge" onclick="openApiPanel()">—</div>
+        <div class="provider-badge" id="providerBadge" onclick="openApiPanel()">CLAUDE</div>
         <button class="hdr-btn" onclick="openSettings()">⚙ Target</button>
       </div>
     </div>
@@ -291,19 +279,9 @@
       <div class="sheet-title">API Setup</div>
       <div class="sheet-sub">Keys are saved locally on your device only.<br>Never shared or uploaded anywhere.</div>
 
-      <div class="setting-label">Active Provider</div>
-      <div class="provider-toggle">
-        <button class="toggle-opt" id="toggleGemini" onclick="setProvider('gemini')">Gemini</button>
-        <button class="toggle-opt" id="toggleClaude" onclick="setProvider('claude')">Claude</button>
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-label">Gemini API Key <span class="key-status" id="geminiStatus"></span></div>
-        <input class="setting-input" type="password" id="geminiKeyInput" placeholder="AIza...">
-      </div>
-
       <div class="setting-row">
         <div class="setting-label">Claude API Key <span class="key-status" id="claudeStatus"></span></div>
+        <div class="sheet-sub" style="margin:-4px 0 8px;">Get a free key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a></div>
         <input class="setting-input" type="password" id="claudeKeyInput" placeholder="sk-ant-...">
       </div>
 
@@ -322,8 +300,6 @@
 let meals = [];
 let calorieTarget = 2400;
 let isLoading = false;
-let activeProvider = 'gemini'; // 'gemini' or 'claude'
-let geminiKey = '';
 let claudeKey = '';
 
 // ── LOAD / SAVE ────────────────────────────────────────
@@ -333,8 +309,6 @@ function loadData() {
     if (m) meals = JSON.parse(m);
     const t = localStorage.getItem('fuel_target');
     if (t) calorieTarget = parseInt(t);
-    activeProvider = localStorage.getItem('fuel_provider') || 'gemini';
-    geminiKey = localStorage.getItem('fuel_gemini_key') || '';
     claudeKey = localStorage.getItem('fuel_claude_key') || '';
   } catch(e) { meals = []; }
 }
@@ -342,8 +316,6 @@ function loadData() {
 function saveData() {
   localStorage.setItem('fuel_meals', JSON.stringify(meals));
   localStorage.setItem('fuel_target', calorieTarget);
-  localStorage.setItem('fuel_provider', activeProvider);
-  if (geminiKey) localStorage.setItem('fuel_gemini_key', geminiKey);
   if (claudeKey) localStorage.setItem('fuel_claude_key', claudeKey);
 }
 
@@ -351,10 +323,8 @@ function clearAllData() {
   if (!confirm('Clear all meals, keys, and settings?')) return;
   localStorage.removeItem('fuel_meals');
   localStorage.removeItem('fuel_target');
-  localStorage.removeItem('fuel_provider');
-  localStorage.removeItem('fuel_gemini_key');
   localStorage.removeItem('fuel_claude_key');
-  meals = []; calorieTarget = 2400; geminiKey = ''; claudeKey = ''; activeProvider = 'gemini';
+  meals = []; calorieTarget = 2400; claudeKey = '';
   closePanel('apiPanel');
   render();
 }
@@ -392,19 +362,6 @@ Estimate nutritional values. Be realistic with Pakistani/South Asian foods.
 Respond ONLY with a JSON object, no markdown, no explanation:
 {"calories": number, "protein": number, "carbs": number, "fats": number, "name": "short meal name"}`;
 
-async function estimateWithGemini(mealText) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: PROMPT(mealText) }] }] })
-  });
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  const clean = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(clean);
-}
-
 async function estimateWithClaude(mealText) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -427,12 +384,11 @@ async function estimateWithClaude(mealText) {
 }
 
 async function estimateMacros(mealText) {
-  if (activeProvider === 'gemini') return estimateWithGemini(mealText);
   return estimateWithClaude(mealText);
 }
 
 function getActiveKey() {
-  return activeProvider === 'gemini' ? geminiKey : claudeKey;
+  return claudeKey;
 }
 
 // ── LOG MEAL ───────────────────────────────────────────
@@ -455,7 +411,7 @@ async function logMeal() {
   const loadingEl = document.createElement('div');
   loadingEl.id = loadingId;
   loadingEl.className = 'loading-card';
-  loadingEl.innerHTML = `<div class="loading-dots"><span></span><span></span><span></span></div><div class="loading-text">Estimating via ${activeProvider} — "${text.slice(0,28)}${text.length>28?'...':''}"</div>`;
+  loadingEl.innerHTML = `<div class="loading-dots"><span></span><span></span><span></span></div><div class="loading-text">Estimating via claude — "${text.slice(0,28)}${text.length>28?'...':''}"</div>`;
   content.appendChild(loadingEl);
   content.scrollTop = content.scrollHeight;
 
@@ -469,7 +425,9 @@ async function logMeal() {
     });
     saveData();
   } catch(e) {
-    meals.push({ id: Date.now(), name: text, calories: 0, protein: 0, carbs: 0, fats: 0, time: new Date().toISOString(), raw: text, error: true });
+    console.error('estimateMacros error:', e);
+    const errName = text + ' [' + (e.message || 'unknown error') + ']';
+    meals.push({ id: Date.now(), name: errName, calories: 0, protein: 0, carbs: 0, fats: 0, time: new Date().toISOString(), raw: text, error: true });
     saveData();
   }
 
@@ -524,8 +482,8 @@ function render() {
   // Provider badge
   const badge = document.getElementById('providerBadge');
   const hasKey = !!getActiveKey();
-  badge.textContent = hasKey ? activeProvider.toUpperCase() : 'NO KEY';
-  badge.className = 'provider-badge ' + (hasKey ? activeProvider : '');
+  badge.textContent = hasKey ? 'CLAUDE' : 'NO KEY';
+  badge.className = 'provider-badge';
 
   // Meal list
   const content = document.getElementById('content');
@@ -595,17 +553,13 @@ function saveSettings() {
 // ── API PANEL ──────────────────────────────────────────
 function openApiPanel() {
   // populate fields (masked)
-  document.getElementById('geminiKeyInput').value = geminiKey ? '••••••••' + geminiKey.slice(-4) : '';
-  document.getElementById('claudeKeyInput').value = claudeKey ? '••••••••' + claudeKey.slice(-4) : '';
-  document.getElementById('geminiStatus').textContent = geminiKey ? '✓ set' : '';
-  document.getElementById('geminiStatus').className = 'key-status' + (geminiKey ? ' set' : '');
+
   document.getElementById('claudeStatus').textContent = claudeKey ? '✓ set' : '';
   document.getElementById('claudeStatus').className = 'key-status' + (claudeKey ? ' set' : '');
-  updateProviderToggleUI();
   document.getElementById('apiPanel').classList.remove('hidden');
 
   // Clear placeholder on focus so user can type new key
-  ['geminiKeyInput','claudeKeyInput'].forEach(id => {
+  ['claudeKeyInput'].forEach(id => {
     const el = document.getElementById(id);
     el.addEventListener('focus', function onFocus() {
       if (this.value.startsWith('••••')) this.value = '';
@@ -614,24 +568,11 @@ function openApiPanel() {
   });
 }
 
-function setProvider(p) {
-  activeProvider = p;
-  updateProviderToggleUI();
-}
-
-function updateProviderToggleUI() {
-  const tg = document.getElementById('toggleGemini');
-  const tc = document.getElementById('toggleClaude');
-  tg.className = 'toggle-opt' + (activeProvider === 'gemini' ? ' active-gemini' : '');
-  tc.className = 'toggle-opt' + (activeProvider === 'claude' ? ' active-claude' : '');
-}
+function setProvider(p) {}
+function updateProviderToggleUI() {}
 
 function saveApiSettings() {
-  const gInput = document.getElementById('geminiKeyInput').value.trim();
-  const cInput = document.getElementById('claudeKeyInput').value.trim();
-  // Only update if user typed something new (not the masked placeholder)
-  if (gInput && !gInput.startsWith('••••')) geminiKey = gInput;
-  if (cInput && !cInput.startsWith('••••')) claudeKey = cInput;
+
   saveData();
   closePanel('apiPanel');
   render();
